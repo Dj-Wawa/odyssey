@@ -610,6 +610,15 @@ public class GaplessPlayer {
 
                 int audioSessionID = mp.getAudioSessionId();
 
+                /*
+                * Playback stopped. Signal android desire to close audio effect session
+                */
+                Intent audioEffectIntent = new Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION);
+                audioEffectIntent.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionID);
+                audioEffectIntent.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, mPlaybackService.getPackageName());
+                Log.v(TAG,"Closing effect for session: " + audioSessionID + " because playback ended");
+                mPlaybackService.sendBroadcast(audioEffectIntent);
+
                 // Release old MediaPlayer
                 mp.release();
 
@@ -629,6 +638,16 @@ public class GaplessPlayer {
                     mSecondarySource = null;
                     mNextMediaPlayer = null;
 
+                    /*
+                     * Signal audio effect desire to android
+                     */
+                    Intent audioEffectOpenIntent = new Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION);
+                    audioEffectOpenIntent.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, mCurrentMediaPlayer.getAudioSessionId());
+                    audioEffectOpenIntent.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, mPlaybackService.getPackageName());
+                    audioEffectOpenIntent.putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC);
+                    Log.v(TAG,"Opening effect for session: " + mCurrentMediaPlayer.getAudioSessionId());
+                    mPlaybackService.sendBroadcast(audioEffectOpenIntent);
+
                     if (mSecondPrepared) {
                         // Notify connected listeners that playback has started
                         for (OnTrackStartedListener listener : mTrackStartListeners) {
@@ -637,15 +656,6 @@ public class GaplessPlayer {
                     }
 
 
-                } else {
-                    /*
-                    * Playback stopped. Signal android desire to close audio effect session
-                    */
-                    Intent audioEffectIntent = new Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION);
-                    audioEffectIntent.putExtra(AudioEffect.EXTRA_AUDIO_SESSION, audioSessionID);
-                    audioEffectIntent.putExtra(AudioEffect.EXTRA_PACKAGE_NAME, mPlaybackService.getPackageName());
-                    Log.v(TAG,"Closing effect for session: " + audioSessionID + " because playback ended");
-                    mPlaybackService.sendBroadcast(audioEffectIntent);
                 }
             }
         }
